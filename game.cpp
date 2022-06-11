@@ -3,7 +3,10 @@
 using namespace std;
 
 void Board();
+void InitializeBoard();
+
 void Input();
+bool isBuiltinBox(int,int);
 bool isValidBox(int,int, int);
 
 bool isPresentInRow(int,int);
@@ -12,10 +15,12 @@ bool isPresentInBox(int,int, int);
 
 int rows = 9, cols = 9;
 int board[9][9] = {0};
+int builtin[9][9] = {0};
 
 int main()
 {
     cout << endl;
+    InitializeBoard();
     Board();
 
     while(true)
@@ -40,13 +45,37 @@ void Board()
 		for(int c=0; c<cols; c++) {
             if(c%3 == 0)
                 cout << "| ";
-            cout << board[r][c] << " ";
+            
+            if(board[r][c] == 0)
+                cout << board[r][c] << " ";
+            else if(board[r][c] == builtin[r][c])
+                cout << "\033[4;1;32m" << board[r][c] << "\033[0m ";
+            else
+                cout << "\033[36m" << board[r][c] << "\033[0m ";
         }
 		cout << "| \n";
 	}
     cout << "\t ------------------------- \n";
 	cout << endl;
 }
+
+void InitializeBoard()
+{
+    int row,col,value;
+    for(int i=0; i<10; i++)
+    {
+        row = random()%9 +1;
+        col = random()%9 +1;
+        value = random()%9 +1;
+
+        if(!isValidBox(row,col, value))
+            continue;
+        
+        board[row][col] = value;
+        builtin[row][col] = value;
+    }
+}
+
 
 void Input()
 {
@@ -55,6 +84,11 @@ void Input()
     if(a<1 || a>rows || b<1 || b>cols) {
         cout << "Oops! Its Outside the Box. There are only 9 Rows and Columns. \n\n";
         return;
+    }
+    
+    if(isBuiltinBox(a-1,b-1)) {
+        cout << "Oops! Its a Builin Box, with Predefined Value. \n\n";
+        return;    
     }
     
     int value;
@@ -99,6 +133,20 @@ bool isValidBox(int row, int col, int x)
     else
         return true;
 }
+
+bool isBuiltinBox(int row, int col)
+{
+    for(int r=0; r<rows; r++) {
+        for(int c=0; c<cols; c++) {
+            if(board[row][col] == 0)
+                continue;
+            else if(board[row][col] == builtin[r][c])
+                return true;
+        }
+    }
+    return false;
+}
+
 
 bool isPresentInRow(int row, int x)
 {
