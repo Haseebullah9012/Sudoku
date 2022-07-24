@@ -3,40 +3,21 @@
 using namespace std;
 
 void Board();
-void InitializeBoard();
-
 void Input();
-bool isBuiltinBox(int,int);
-bool isValidBox(int,int, int);
 
+void InitializeBoard();
+bool RecursiveFillBox(int,int);
+
+bool isValidBox(int,int, int);
+bool isBuiltinBox(int,int);
 bool isPresentInRow(int,int);
 bool isPresentInCol(int,int);
 bool isPresentInBlock(int,int, int);
 
-void SwapNums(int,int);
-void SwapRows(int,int);
-void SwapRowBlocks(int,int);
-void SwapCols(int,int);
-void SwapColBlocks(int,int);
-void SwapValues(int &, int &);
-
 int rows = 9, cols = 9;
 int board[9][9] = {0};
-//int builtin[9][9] = {0};
-int builtin[9][9] =
-                {
-                    {1,2,3,  4,5,6,  7,8,9},
-                    {4,5,6,  7,8,9,  1,2,3},
-                    {7,8,9,  1,2,3,  4,5,6},
-
-                    {2,3,1,  5,6,4,  8,9,7},
-                    {5,6,4,  8,9,7,  2,3,1},
-                    {8,9,7,  2,3,1,  5,6,4},
-
-                    {3,1,2,  6,4,5,  9,7,8},
-                    {6,4,5,  9,7,8,  3,1,2},
-                    {9,7,8,  3,1,2,  6,4,5}
-                };
+int solution[9][9] = {0};
+int builtin[9][9] = {0};
 
 int main()
 {
@@ -79,67 +60,6 @@ void Board()
     cout << "\t ------------------------- \n";
 	cout << endl;
 }
-
-void InitializeBoard()
-{
-    for(int r=0; r<rows; r++)
-        for(int c=0; c<cols; c++)
-            if(random()%2==0)
-                board[r][c] = builtin[r][c]; //Place the Number with 1/2 Probability (50% Chance)
-    
-    //Swap Numbers
-    for(int n=1,x=1; n<=9; n++) {
-        while(n == x)
-            x = random()%9 +1;
-        
-        SwapNums(n,x);
-    }
-    
-    int box;
-    //Swap Rows
-    for(int r=1,x=1; r<=9; r++)
-    {    
-        box = (r-1)/3;
-        while(box*3 +x == r)
-            x = random()%3 +1;
-        
-        SwapRows(r, box*3 +x);
-    }
-
-    //Swap Columns
-    for(int c=1,x=1; c<=9; c++)
-    {    
-        box = (c-1)/3;
-        while(box*3 +x == c)
-            x = random()%3 +1;
-        
-        SwapCols(c, box*3 +x);
-    }
-
-    //Swap RowBlocks
-    for(int r=1,x=1; r<=3; r++)
-    {    
-        while(x == r)
-            x = random()%3 +1;
-        
-        SwapRowBlocks(r, x);
-    }
-
-    //Swap ColumnBlocks
-    for(int c=1,x=1; c<=3; c++)
-    {    
-        while(x == c)
-            x = random()%3 +1;
-        
-        SwapColBlocks(c, x);
-    }
-
-    //Make The Builtin the Same as Board
-    for(int r=0; r<rows; r++)
-        for(int c=0; c<cols; c++)
-                builtin[r][c] = board[r][c];
-}
-
 
 void Input()
 {
@@ -186,13 +106,60 @@ void Input()
     Board();
 }
 
+
+void InitializeBoard()
+{
+    RecursiveFillBox(0,0);
+
+    //Copy the Filled Board as Solution
+    for(int r=0; r<rows; r++)
+        for(int c=0; c<cols; c++)
+                solution[r][c] = board[r][c];
+    
+    //Remove Values from Random Boxes
+    for(int r=0; r<rows; r++)
+        for(int c=0; c<cols; c++)
+            if(random()%20==0)
+                board[r][c] = 0; //Remove with 1/2 Probability (50% Chance)
+    
+    //Make The Builtin the Same as Board
+    for(int r=0; r<rows; r++)
+        for(int c=0; c<cols; c++)
+                builtin[r][c] = board[r][c];
+}
+
+bool RecursiveFillBox(int row,int col)
+{
+    //Next Row
+    if(col>=cols) {
+        col=0;
+        row++;
+        if(row>=rows)
+            return true; //All Rows Filled
+    }
+    
+    int num = random()%9 +1;
+    for(int i=0; i<10; i++,num++)
+    {
+        if(isValidBox(row,col, num)) {
+            board[row][col] = num;
+            if(RecursiveFillBox(row,col+1))
+                return true;
+            else
+                board[row][col] = 0;
+        }
+        
+        if(num>=9)
+            num=0;
+    }
+
+    return false;
+}
+
+
 bool isValidBox(int row, int col, int x)
 {
-    if(isPresentInRow(row, x))
-        return false;
-    else if(isPresentInCol(col, x))
-        return false;
-    else if(isPresentInBlock(row,col, x))
+    if(isPresentInRow(row, x) || isPresentInCol(col, x) || isPresentInBlock(row,col, x))
         return false;
     else
         return true;
@@ -210,7 +177,6 @@ bool isBuiltinBox(int row, int col)
     }
     return false;
 }
-
 
 bool isPresentInRow(int row, int x)
 {
@@ -243,54 +209,4 @@ bool isPresentInBlock(int row, int col, int x)
     }
     
     return false;
-}
-
-
-void SwapNums(int n1, int n2)
-{
-    for(int r=0; r<rows; r++) {
-        for(int c=0; c<cols; c++) {
-            if(board[r][c] == n1)
-                board[r][c] = n2;
-            else if(board[r][c] == n2)
-                board[r][c] = n1;
-        }
-    }
-}
-
-void SwapRows(int r1, int r2)
-{
-    r1--, r2--;
-    for(int c=0; c<cols; c++)
-        SwapValues( board[r1][c],board[r2][c] );
-}
-
-void SwapRowBlocks(int r1, int r2)
-{
-    r1 = (r1-1)*3;
-    r2 = (r2-1)*3;
-    for(int r=1; r<=3; r++)
-        SwapRows( r1+r, r2+r );
-}
-
-void SwapCols(int c1, int c2)
-{
-    c1--, c2--;
-    for(int r=0; r<rows; r++)
-        SwapValues( board[r][c1],board[r][c2] );
-}
-
-void SwapColBlocks(int c1, int c2)
-{
-    c1 = (c1-1)*3;
-    c2 = (c2-1)*3;
-    for(int c=1; c<=3; c++)
-        SwapCols( c1+c, c2+c );
-}
-
-void SwapValues(int &x, int &y)
-{
-    int temp = x;
-    x = y;
-    y = temp;
 }
