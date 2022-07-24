@@ -1,9 +1,12 @@
 #include <iostream>
 #include <string.h>
+#include<random>
 using namespace std;
 
 void Board();
 void Input();
+bool over();
+void PlayAgain();
 
 void InitializeBoard();
 bool RecursiveFillBox(int,int);
@@ -19,17 +22,41 @@ int board[9][9] = {0};
 int solution[9][9] = {0};
 int builtin[9][9] = {0};
 
+char playAgain = 'Y'; //The Default PlayAgain Option
+random_device Seed; //RandomValue Generator
+uniform_int_distribution<int> randomNumber(1,9);
+
 int main()
 {
     cout << endl;
-    InitializeBoard();
-    Board();
+	cout << "Welcome to the Sudoku-Board-Game. A Logical-Puzzle Game. \n\n";
+		
+    do {
+        InitializeBoard();
+        Board();
 
-    while(true)
-    {
-        cout << "Select the Box (Row Col) on the Board: ";
-        Input();
+        //Main Game
+        while(true)
+        {
+            cout << "Select the Box (Row Col) on the Board: ";
+            Input();
+            Board();
+
+            if(over()) {
+                cout << "\n\n Congratulations! You Won. The Whole Board is Completed. \n\n";
+                break;
+            }
+        }
+        
+        PlayAgain();
     }
+    while(playAgain == 'Y');
+    
+    cout << endl << endl;
+    cout << "Thanks for Playing. Hope You Enjoyed the Game! \n";
+    cout << "It would be very Kind of you, if you give us an Honest Feedback. \n\n";
+
+    cout << "You can Find me in GitHub https://github.com/Haseebullah9012. \n";
 
     getchar();
     return 0;
@@ -103,7 +130,16 @@ void Input()
     }            
     
     board[a-1][b-1] = value;
-    Board();
+}
+
+bool over()
+{
+    for(int r=0; r<rows; r++)
+        for(int c=0; c<cols; c++)
+                if(board[r][c]==0)
+                    return false;
+    
+    return true;
 }
 
 
@@ -117,10 +153,12 @@ void InitializeBoard()
                 solution[r][c] = board[r][c];
     
     //Remove Values from Random Boxes
-    for(int r=0; r<rows; r++)
-        for(int c=0; c<cols; c++)
-            if(random()%20==0)
-                board[r][c] = 0; //Remove with 1/2 Probability (50% Chance)
+    for(int i=0, r,c; i<80; i++) //Max60-Avg42, Max80-Avg52
+    {
+        r = randomNumber(Seed) -1;
+        c = randomNumber(Seed) -1;
+        board[r][c] = 0;
+    }
     
     //Make The Builtin the Same as Board
     for(int r=0; r<rows; r++)
@@ -138,7 +176,7 @@ bool RecursiveFillBox(int row,int col)
             return true; //All Rows Filled
     }
     
-    int num = random()%9 +1;
+    int num = randomNumber(Seed);
     for(int i=0; i<10; i++,num++)
     {
         if(isValidBox(row,col, num)) {
@@ -209,4 +247,19 @@ bool isPresentInBlock(int row, int col, int x)
     }
     
     return false;
+}
+
+
+void PlayAgain()
+{
+	cout << "Do You Want to Play Again (Y/N): ";
+	cin >> playAgain;
+	playAgain = toupper(playAgain);
+	cin.ignore(255, '\n');
+
+    if(playAgain != 'Y' && playAgain != 'N') {
+		cout << "   Oops! Its not a legal Response. \n\n";
+		cout << "Again, ";
+		PlayAgain();
+	}
 }
