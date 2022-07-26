@@ -1,15 +1,18 @@
 #include <iostream>
 #include <string.h>
 #include<random>
+#include<fstream>
 using namespace std;
 
 void Board();
 void Input();
 bool over();
 void PlayAgain();
+void SaveBoard(string);
+void ReadBoard(string);
 
 void InitializeBoard();
-bool RecursiveFillBox(int,int);
+bool recursiveSolve(int,int);
 
 bool isValidBox(int,int, int);
 bool isBuiltinBox(int,int);
@@ -22,6 +25,7 @@ int board[9][9] = {0};
 int solution[9][9] = {0};
 int builtin[9][9] = {0};
 
+bool quit = false;
 char playAgain = 'Y'; //The Default PlayAgain Option
 random_device Seed; //RandomValue Generator
 uniform_int_distribution<int> randomNumber(1,9);
@@ -30,7 +34,7 @@ int main()
 {
     cout << endl;
 	cout << "Welcome to the Sudoku-Board-Game. A Logical-Puzzle Game. \n\n";
-		
+	
     do {
         InitializeBoard();
         Board();
@@ -41,6 +45,9 @@ int main()
             cout << "Select the Box (Row Col) on the Board: ";
             Input();
             Board();
+
+            if(quit)
+                break;
 
             if(over()) {
                 cout << "\n\n Congratulations! You Won. The Whole Board is Completed. \n\n";
@@ -91,7 +98,19 @@ void Board()
 void Input()
 {
     int a,b;
-    cin >> a >> b;    
+    cin >> a >> b;
+
+    if(a==-9 && b==-9) {
+        quit = true;
+        cout << "\n\n You are Quiting the Game. \n\n";
+        return;
+    }
+    else if(a==-8 && b==-8) {
+        SaveBoard("Game");
+        cout << "\n\n Your Sudoku Game is Saved. \n\n";
+        return;
+    }
+    
     if(a<1 || a>rows || b<1 || b>cols) {
         cout << "Oops! Its Outside the Box. There are only 9 Rows and Columns. \n\n";
         return;
@@ -136,8 +155,8 @@ bool over()
 {
     for(int r=0; r<rows; r++)
         for(int c=0; c<cols; c++)
-                if(board[r][c]==0)
-                    return false;
+            if(board[r][c] == 0)
+                return false;
     
     return true;
 }
@@ -145,28 +164,46 @@ bool over()
 
 void InitializeBoard()
 {
-    RecursiveFillBox(0,0);
+    char importBoard;
+    cout << "Do You Want to Import Saved Sudoku Board (Y/N): ";
+	cin >> importBoard;
+	importBoard = toupper(importBoard);
+	cin.ignore(255, '\n');
+
+    if(importBoard == 'Y')
+        ReadBoard
+        ("Solution");
+    else
+        recursiveSolve(0,0); //Generate New Board
 
     //Copy the Filled Board as Solution
     for(int r=0; r<rows; r++)
         for(int c=0; c<cols; c++)
-                solution[r][c] = board[r][c];
-    
-    //Remove Values from Random Boxes
-    for(int i=0, r,c; i<80; i++) //Max60-Avg42, Max80-Avg52
-    {
-        r = randomNumber(Seed) -1;
-        c = randomNumber(Seed) -1;
-        board[r][c] = 0;
+            solution[r][c] = board[r][c];
+    SaveBoard("Solution");
+
+
+    if(importBoard == 'Y')
+        ReadBoard("Puzzle");
+    else {
+        for(int i=0, r,c; i<80; i++) {
+            r = randomNumber(Seed) -1;
+            c = randomNumber(Seed) -1;
+            board[r][c] = 0; //Remove Values from Random Boxes (Max60-Avg42, Max80-Avg52)
+        }
     }
     
     //Make The Builtin the Same as Board
     for(int r=0; r<rows; r++)
         for(int c=0; c<cols; c++)
-                builtin[r][c] = board[r][c];
+            builtin[r][c] = board[r][c];
+    SaveBoard("Puzzle");
+
+    if(importBoard == 'Y')
+        ReadBoard("Game");
 }
 
-bool RecursiveFillBox(int row,int col)
+bool recursiveSolve(int row,int col)
 {
     //Next Row
     if(col>=cols) {
@@ -176,12 +213,15 @@ bool RecursiveFillBox(int row,int col)
             return true; //All Rows Filled
     }
     
+    if(board[row][col] != 0)
+        return recursiveSolve(row,col+1); //Skip Default Numbers
+
     int num = randomNumber(Seed);
     for(int i=0; i<10; i++,num++)
     {
         if(isValidBox(row,col, num)) {
             board[row][col] = num;
-            if(RecursiveFillBox(row,col+1))
+            if(recursiveSolve(row,col+1))
                 return true;
             else
                 board[row][col] = 0;
@@ -197,22 +237,15 @@ bool RecursiveFillBox(int row,int col)
 
 bool isValidBox(int row, int col, int x)
 {
-    if(isPresentInRow(row, x) || isPresentInCol(col, x) || isPresentInBlock(row,col, x))
-        return false;
-    else
+    if(!isPresentInRow(row, x) && !isPresentInCol(col, x) && !isPresentInBlock(row,col, x))
         return true;
+    return false;
 }
 
 bool isBuiltinBox(int row, int col)
 {
-    for(int r=0; r<rows; r++) {
-        for(int c=0; c<cols; c++) {
-            if(board[row][col] == 0)
-                continue;
-            else if(board[row][col] == builtin[r][c])
-                return true;
-        }
-    }
+    if(board[row][col]!=0 && board[row][col]==builtin[row][col])
+        return true;
     return false;
 }
 
@@ -221,7 +254,7 @@ bool isPresentInRow(int row, int x)
     for(int c=0; c<cols; c++)
         if(board[row][c] == x)
             return true;
-    
+
     return false;
 }
 
@@ -239,12 +272,10 @@ bool isPresentInBlock(int row, int col, int x)
     int i = row - row%3;
     int j = col - col%3;
     
-    for(int r=i; r<i+3; r++) {
-        for(int c=j; c<j+3; c++) {
+    for(int r=i; r<i+3; r++)
+        for(int c=j; c<j+3; c++)
             if(board[r][c] == x)
                 return true;
-        }
-    }
     
     return false;
 }
@@ -262,4 +293,78 @@ void PlayAgain()
 		cout << "Again, ";
 		PlayAgain();
 	}
+}
+
+
+void SaveBoard(string name)
+{
+    ofstream file("Sudoku.txt", ios::out | ios::app);
+    
+    if(name=="Solution")
+        file << "\n\n" << "\t -------- Solution ------- \n";
+    else if(name=="Puzzle")
+        file << "\t --------- Puzzle -------- \n";
+    else if(name=="Game")
+        file << "\t ---------- Game --------- \n";
+    
+    for(int r=0; r<rows; r++)
+    {	
+        if(r%3 == 0)
+            file << "\t ------------------------- \n";
+        
+        file << "\t ";
+		for(int c=0; c<cols; c++)
+        {
+            if(c%3 == 0)
+                file << "| ";
+            
+            file << board[r][c] << " ";
+        }
+		file << "| \n";
+	}
+    file << "\t ------------------------- \n";
+	
+    file.close();
+}
+
+void ReadBoard(string name)
+{
+    ifstream file("Sudoku.txt");
+    if(!file.is_open())
+        return;
+    
+    string line;
+    int skip = 1;
+    if(name=="Puzzle")
+        skip += 14;
+    else if(name=="Game")
+        skip += 2*14;
+
+    for(int i=0; i<skip; i++)
+        getline(file, line); //Skip to the Desired Board
+    
+    int r=0, c=0, num;
+    while(!file.eof())
+    {
+        getline(file, line);
+        for(int i=4; i<line.length(); i++)
+        {
+            num = line[i]-'0';
+            if(num>=0 && num<=9)
+            {
+                board[r][c] = num;
+                c++;
+
+                if(c==cols) {
+                    c=0;
+                    r++;
+                }
+            }
+        }
+        
+        if(r>=rows)
+            break;
+    }
+    
+    file.close();
 }
